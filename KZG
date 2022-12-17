@@ -59,414 +59,333 @@ Character:AddToggle({
 
 -- ///////////////////////////////////// --
 
-local Games = {
-    [10645442864] = function() 
-		-- exploit footstep remote
-		-- 7517207208
+local ACS = RepStorage:WaitForChild('ACS_Engine')
+local Events = ACS:WaitForChild('Events')
+local Whizz = Events:WaitForChild('Whizz')
+local Suppress = Events:WaitForChild('Suppression')
+local AcessId = Events:WaitForChild('AcessId'):InvokeServer(Player.UserId)
+local Damage = Events:WaitForChild('Damage')
 
-        local ACS = RepStorage:WaitForChild('ACS_Engine')
-        local Events = ACS:WaitForChild('Events')
-        local Whizz = Events:WaitForChild('Whizz')
-        local Suppress = Events:WaitForChild('Suppression')
-		local AcessId = Events:WaitForChild('AcessId'):InvokeServer(Player.UserId)
-        local Damage = Events:WaitForChild('Damage')
+ local GeneralWhitelist = {}
+local SuppressTargets = {}
+local KillTargets = {}
 
-        local GeneralWhitelist = {}
-		local SuppressTargets = {}
-		local KillTargets = {}
+local ModTable = {
+	camRecoilMod 	= {
+		RecoilTilt 	= 1,
+		RecoilUp 	= 1,
+		RecoilLeft 	= 1,
+		RecoilRight = 1
+	}
 
-        local ModTable = {
-			camRecoilMod 	= {
-				RecoilTilt 	= 1,
-				RecoilUp 	= 1,
-				RecoilLeft 	= 1,
-				RecoilRight = 1
-			}
+	,gunRecoilMod	= {
+		RecoilUp 	= 1,
+		RecoilTilt 	= 1,
+		RecoilLeft 	= 1,
+		RecoilRight = 1
+	}
 
-			,gunRecoilMod	= {
-				RecoilUp 	= 1,
-				RecoilTilt 	= 1,
-				RecoilLeft 	= 1,
-				RecoilRight = 1
-			}
+	,ZoomValue 		= 70
+	,Zoom2Value 	= 70
+	,AimRM 			= 1
+	,SpreadRM 		= 1
+	,DamageMod 		= 1
+	,minDamageMod 	= 1
 
-			,ZoomValue 		= 70
-			,Zoom2Value 	= 70
-			,AimRM 			= 1
-			,SpreadRM 		= 1
-			,DamageMod 		= 1
-			,minDamageMod 	= 1
+	,MinRecoilPower 			= 1
+	,MaxRecoilPower 			= 1
+	,RecoilPowerStepAmount 		= 1
 
-			,MinRecoilPower 			= 1
-			,MaxRecoilPower 			= 1
-			,RecoilPowerStepAmount 		= 1
-
-			,MinSpread 					= 1
-			,MaxSpread 					= 1					
-			,AimInaccuracyStepAmount 	= 1
-			,AimInaccuracyDecrease 		= 1
-			,WalkMult 					= 1
-			,adsTime 					= 1		
-			,MuzzleVelocity 			= 1
-		}  
+	,MinSpread 					= 1
+	,MaxSpread 					= 1					
+	,AimInaccuracyStepAmount 	= 1
+	,AimInaccuracyDecrease 		= 1
+	,WalkMult 					= 1
+	,adsTime 					= 1		
+	,MuzzleVelocity 			= 1
+}  
 
         
-        local GameTab = MainWindow:CreateTab({
-	        Name = "KZG"
-        })
+local GameTab = MainWindow:CreateTab({
+    Name = "KZG"
+})
         
-        local GeneralSection = GameTab:CreateSection({
-	        Name = "General",
-	        Side = "Left"
-        })
+ local GeneralSection = GameTab:CreateSection({
+   	Name = "General",
+    Side = "Left"
+})
         
-        local AudioSection = GameTab:CreateSection({
-	        Name = "Audio",
-	        Side = "Right"
-        })
+local AudioSection = GameTab:CreateSection({
+    Name = "Audio",
+    Side = "Right"
+})
     
-        local KillSection = GameTab:CreateSection({
-	        Name = "Kill",
-	        Side = "Left"
-        })
+local KillSection = GameTab:CreateSection({
+    Name = "Kill",
+    Side = "Left"
+})
     
-        local LootSection = GameTab:CreateSection({
-            Name = "Loot",
-            Side = "Right"
-        })
+local LootSection = GameTab:CreateSection({
+    Name = "Loot",
+    Side = "Right"
+})
         
-		GeneralSection:AddTextbox({
-			Name = "General Whitelist",
-			Placeholder = "User(s) here, split with '+'",
-			Value = "",
-			Flag = "Whitelist",
-			Callback = 
-			function(NewValue)
-				if NewValue == "" then CreateMessage({
-					Title = 'Whitelist cleared',
-					Text = 'Whitelist has been cleared',
-					Duraction = 5,
-				}) GeneralWhitelist = {} return end
-				local Split = string.split(NewValue, '+')
-				GeneralWhitelist = {}
-				for _, PartialString in pairs(Split) do
-					if PartialString ~= "" then
-						local TargetPlayer = GetPlayer(PartialString)
-							if TargetPlayer then
-					    		GeneralWhitelist[TargetPlayer] = TargetPlayer
-								CreateMessage({
-									Title = 'Whitelisted.',
-									Text = TargetPlayer.Name..' has been whitelisted.',
-									Duraction = 5,
-								})
-							else
-								CreateMessage({
-									Title = 'Whitelist Error.',
-									Text = PartialString..' not found.',
-									Duraction = 5,
-								})
-							end
-						end
-					end
-				end
-		})
-
-		GeneralSection:AddLabel({
-			Value = 'This will override anything.'
-		})
-
-		AudioSection:AddTextbox({
-			Name = "Target(s)",
-			Placeholder = "User(s) here, split with '+'",
-			Value = "",
-			Flag = "KZG_SuppressTargets",
-			Callback = function(NewValue)
-				if NewValue == "" then CreateMessage({
-					Title = 'SuppressTargets cleared',
-					Text = 'SuppressTargets has been cleared',
-					Duraction = 5,
-				}) SuppressTargets = {} return end
-				local Split = string.split(NewValue, '+')
-				SuppressTargets = {}
-				for _, PartialString in pairs(Split) do
-					if PartialString ~= "" then
-						local TargetPlayer = GetPlayer(PartialString)
-							if TargetPlayer then
-								SuppressTargets[TargetPlayer] = TargetPlayer
-								CreateMessage({
-									Title = 'Added to SuppressTargets.',
-									Text = TargetPlayer.Name..' has been added to the SuppressTargets.',
-									Duraction = 5,
-								})
-							else
-								if (PartialString:lower() == ('all') or PartialString:lower() == ('others')) then
-									CreateMessage({
-										Title = 'Set SuppressTargets.',
-										Text = "SuppressTargets has been set to '"..PartialString.."'.",
-										Duraction = 5,
-									})
-								else
-									CreateMessage({
-										Title = 'Target Error.',
-										Text = PartialString..' not found.',
-										Duraction = 5,
-									})
-								end
-							end
-						end
-					end
-				end
-		})
-
-		AudioSection:AddLabel({
-		    Value = "Ex. Target1+Target2, or All,"
-		})
-		
-		AudioSection:AddLabel({
-		    Value = "or Others"
-		})
-
-		AudioSection:AddToggle({
-		Name = "Suppress Targets",
-		Flag = "KZG_Suppress",
-		Callback = 
-		function()
-	 		while flags.KZG_Suppress and task.wait(flags.KZG_SuppressSpeed) do
-				if flags.KZG_SuppressTargets:lower() == 'all' then
-					for i, v in pairs(Players:GetPlayers()) do
-						if GeneralWhitelist[v] == nil then
-							Whizz:FireServer(v)
-		     		    	Suppress:FireServer(v, 1, nil, 2)
-						end
-					end
-				elseif flags.KZG_SuppressTargets:lower() == 'others' then
-					for i, v in pairs(Players:GetPlayers()) do
-						if GeneralWhitelist[v] == nil and v ~= Player then
-							Whizz:FireServer(v)
-		     		    	Suppress:FireServer(v, 1, nil, 2)
-						end
-					end
-				else
-					for _, Target in pairs(SuppressTargets) do
-						if Target and GeneralWhitelist[Target] == nil then
-							Whizz:FireServer(Target)
-		     		   	 	Suppress:FireServer(Target, 1, nil, 2)
-						end
-					end
-				end
-	 		end
-   		end
-		})
-
-		AudioSection:AddSlider({
-			Name = "Suppress Delay",
-			Flag = "KZG_SuppressSpeed",
-			Value = 0.2,
-			Min = 0,
-			Max = 10,
-			Textbox = true,
-			Format = function(Value)
-			if Value == 0 then
-				CreateMessage({
-					Title = 'Warning.',
-					Text = 'No delay will result in ClientLag that other players will see, aka making it obvious its you causing it.',
-					Duraction = 5,
-				})
-				return "Suppress Delay: Indefinite"
-			else
-				return "Suppress Delay: " .. tostring(Value) .. "s"
-			end
-		end
-		})
-
-		AudioSection:AddButton({
-			Name = "EarRing Targets",
-			Callback = function()
-				if flags.KZG_SuppressTargets:lower() == 'all' then
-					for i, v in pairs(Players:GetPlayers()) do
-						if GeneralWhitelist[v] == nil then
-		     		    	Suppress:FireServer(v, 2, nil, flags.KZG_EarRingTime)
-						end
-					end
-				elseif flags.KZG_SuppressTargets:lower() == 'others' then
-					for i, v in pairs(Players:GetPlayers()) do
-						if GeneralWhitelist[v] == nil and v ~= Player then
-		     		    	Suppress:FireServer(v, 2, nil, flags.KZG_EarRingTime)
-						end
-					end
-				else
-					for _, Target in pairs(SuppressTargets) do
-						if Target and GeneralWhitelist[Target] == nil then
-							Suppress:FireServer(Target, 2, nil, flags.KZG_EarRingTime)
-						end
-					end
-				end
-			end
-		})
-
-		AudioSection:AddSlider({
-			Name = "EarRing Time Speed",
-			Flag = "KZG_EarRingTime",
-			Value = 60,
-			Min = 0,
-			Max = 600,
-			Textbox = true,
-			Format = function(Value)
-				return "EarRing Time: " .. tostring(Value) .. "s"
-			end
-
-		})
-		
-		KillSection:AddTextbox({
-			Name = "Target(s)",
-			Placeholder = "User(s) here, split with '+'",
-			Value = "",
-			Flag = "KZG_KillTargets",
-			Callback = function(NewValue)
-				if NewValue == "" then CreateMessage({
-					Title = 'KillTargets cleared',
-					Text = 'KillTargets has been cleared',
-					Duraction = 5,
-				}) KillTargets = {} return end
-				local Split = string.split(NewValue, '+')
-				KillTargets = {}
-				for _, PartialString in pairs(Split) do
-					if PartialString ~= "" then
-						local TargetPlayer = GetPlayer(PartialString)
-							if TargetPlayer then
-								KillTargets[TargetPlayer] = TargetPlayer
-								CreateMessage({
-									Title = 'Added to KillTargets.',
-									Text = TargetPlayer.Name..' has been added to the KillTargets.',
-									Duraction = 5,
-								})
-							else
-								if (PartialString:lower() == ('all') or PartialString:lower() == ('others')) then
-									CreateMessage({
-										Title = 'Set KillTargets.',
-										Text = "KillTargets has been set to '"..PartialString.."'.",
-										Duraction = 5,
-									})
-								else
-									CreateMessage({
-										Title = 'Target Error.',
-										Text = PartialString..' not found.',
-										Duraction = 5,
-									})
-								end
-							end
-						end
-					end
-				end
-		})
-
-		KillSection:AddLabel({
-		    Value = "Ex. Target1+Target2, or All,"
-		})
-		
-		KillSection:AddLabel({
-		    Value = "or Others"
-		})
-
-		KillSection:AddButton({
-			Name = "Kill Target(s)",
-			Flag = "KZG_Kill",
-			Callback = function()
-				local Weapon
-				
-				for i, v in pairs(Players:GetDescendants()) do
-				    if v:IsA('Tool') and v:FindFirstChild('ACS_Settings') then
-				        Weapon = v
-				        break
-				    end
-				end
-				
-				if Weapon then
-					local Module = require(Weapon.ACS_Settings)
-					if flags.KZG_KillTargets:lower() == 'all' then
-					    for i, v in pairs(Players:GetPlayers()) do
-					        local Char = v.Character or v.CharacterAdded:Wait()
-						    if GeneralWhitelist[v] == nil and v ~= Player then
-						    	Damage:InvokeServer(Weapon, Char:FindFirstChildOfClass('Humanoid'), 0, 1, Module, ModTable, nil, nil, AcessId..'-'..Player.UserId)
-						    end
-					    end
-					    Player.Character.Humanoid.Health = 0
-					elseif flags.KZG_KillTargets:lower() == 'others' then
-						for i, v in pairs(Players:GetPlayers()) do
-						    local Char = v.Character or v.CharacterAdded:Wait()
-							if GeneralWhitelist[v] == nil and v ~= Player then
-								Damage:InvokeServer(Weapon, Char:FindFirstChildOfClass('Humanoid'), 0, 1, Module, ModTable, nil, nil, AcessId..'-'..Player.UserId)
-							end
-						end
+GeneralSection:AddTextbox({
+	Name = "General Whitelist",
+	Placeholder = "User(s) here, split with '+'",
+	Value = "",
+	Flag = "Whitelist",
+	Callback = 
+	function(NewValue)
+		if NewValue == "" then CreateMessage({Title = 'Whitelist cleared', Text = 'Whitelist has been cleared', Duraction = 5}) GeneralWhitelist = {} return end
+		local Split = string.split(NewValue, '+')
+		GeneralWhitelist = {}
+		for _, PartialString in pairs(Split) do
+			if PartialString ~= "" then
+				local TargetPlayer = GetPlayer(PartialString)
+					if TargetPlayer then
+			    		GeneralWhitelist[TargetPlayer] = TargetPlayer
+						CreateMessage({Title = 'Whitelisted.', Text = TargetPlayer.Name..' has been whitelisted.', Duraction = 5,})
 					else
-						for _, Target in pairs(KillTargets) do
-							local Char = Target.Character or Target.CharacterAdded:Wait()
-							if Target and GeneralWhitelist[Target] == nil then
-								Damage:InvokeServer(Weapon, Char:FindFirstChildOfClass('Humanoid'), 0, 1, Module, ModTable, nil, nil, AcessId..'-'..Player.UserId)
-							end
-						end
+						CreateMessage({Title = 'Whitelist Error.', Text = PartialString..' not found.', Duraction = 5,})
 					end
-				else
-				    CreateMessage({
-                        Title = 'Error.',
-                        Text = 'No uKZGle weapons found.',
-                        Duraction = 5,
-                    })
 				end
 			end
-		})
-		
-		LootSection:AddLabel({
-		    Value = "This will only work for"
-		})
-		
-		LootSection:AddLabel({
-		    Value = "about 20 studs or so."
-		})
+		end})
 
-		LootSection:AddLabel({
-		    Value = "WIP this dont work"
-		})
+GeneralSection:AddLabel({
+	Value = 'This will override anything.'
+})
+
+AudioSection:AddTextbox({
+	Name = "Target(s)",
+	Placeholder = "User(s) here, split with '+'",
+	Value = "",
+	Flag = "KZG_SuppressTargets",
+	Callback = function(NewValue)
+		if NewValue == "" then CreateMessage({Title = 'SuppressTargets cleared', Text = 'SuppressTargets has been cleared', Duraction = 5}) SuppressTargets = {} return end
+		local Split = string.split(NewValue, '+')
+		SuppressTargets = {}
+		for _, PartialString in pairs(Split) do
+			if PartialString ~= "" then
+				local TargetPlayer = GetPlayer(PartialString)
+					if TargetPlayer then
+						SuppressTargets[TargetPlayer] = TargetPlayer
+						CreateMessage({Title = 'Added to SuppressTargets.', Text = TargetPlayer.Name..' has been added to the SuppressTargets.', Duraction = 5})
+					else
+						if (PartialString:lower() == ('all') or PartialString:lower() == ('others')) then
+							CreateMessage({Title = 'Set SuppressTargets.', Text = "SuppressTargets has been set to '"..PartialString.."'.", Duraction = 5})
+						else
+							CreateMessage({Title = 'Target Error.', Text = PartialString..' not found.', Duraction = 5})
+						end
+					end
+				end
+			end
+		end})
+
+AudioSection:AddLabel({
+	Value = "Ex. Target1+Target2, or All,"
+})
 		
-		LootSection:AddToggle({
-		    Name = "Fire Nearby lootPrompts",
-		    Flag = "KZG_LootPrompts",
-		    Callback = function()
-		        while flags.KZG_LootPrompts and task.wait(flags.KZG_FirePromptSpeed) do
-		            for i, v in pairs(workspace:GetChildren()) do
-		                local Prompt = v:FindFirstChildOfClass('ProximityPrompt')
-		                if Prompt and v:IsA('BasePart') and (Player.Character.HumanoidRootPart.Position - v.Position).Magnitude <= Prompt.MaxActivationDistance then
-		                    fireproximityprompt(Prompt, (Player.Character.HumanoidRootPart.Position - v.Position).Magnitude)
-		                end
-		            end
-		        end
-		    end
-		})
-		
-		LootSection:AddSlider({
-			Name = "FirePrompt Speed",
-			Flag = "KZG_FirePromptSpeed",
-			Value = 30,
-			Min = 5,
-			Max = 60,
-			Textbox = true,
-			Format = function(Value)
-			if Value == 0 then
-				return "FirePrompt Speed: Indefinite"
+AudioSection:AddLabel({
+	 Value = "or Others"
+})
+
+AudioSection:AddToggle({
+	Name = "Suppress Targets",
+	Flag = "KZG_Suppress",
+	Callback = 
+	function()
+	 	while flags.KZG_Suppress and task.wait(flags.KZG_SuppressSpeed) do
+			if flags.KZG_SuppressTargets:lower() == 'all' then
+				for i, v in pairs(Players:GetPlayers()) do
+					if GeneralWhitelist[v] == nil then
+						Whizz:FireServer(v)
+		   		    	Suppress:FireServer(v, 1, nil, 2)
+					end
+				end
+			elseif flags.KZG_SuppressTargets:lower() == 'others' then
+				for i, v in pairs(Players:GetPlayers()) do
+					if GeneralWhitelist[v] == nil and v ~= Player then
+						Whizz:FireServer(v)
+		    			Suppress:FireServer(v, 1, nil, 2)
+					end
+				end
 			else
-				return "FirePrompt Speed: " .. tostring(Value) .. "s"
+				for _, Target in pairs(SuppressTargets) do
+					if Target and GeneralWhitelist[Target] == nil then
+						Whizz:FireServer(Target)
+		    	   	 	Suppress:FireServer(Target, 1, nil, 2)
+					end
+				end
+			end
+	 	end
+   	end})
+
+AudioSection:AddSlider({
+	Name = "Suppress Delay",
+	Flag = "KZG_SuppressSpeed",
+	Value = 0.2,
+	Min = 0,
+	Max = 10,
+	Textbox = true,
+	Format = function(Value)
+	if Value == 0 then
+		CreateMessage({Title = 'Warning.', Text = 'No delay will result in ClientLag that other players will see, aka making it obvious its you causing it.', Duraction = 5})
+			return "Suppress Delay: Indefinite"
+		else
+			return "Suppress Delay: " .. tostring(Value) .. "s"
+		end
+	end})
+
+AudioSection:AddButton({
+	Name = "EarRing Targets",
+	Callback = function()
+	if flags.KZG_SuppressTargets:lower() == 'all' then
+		for i, v in pairs(Players:GetPlayers()) do
+			if GeneralWhitelist[v] == nil then
+	   		    	Suppress:FireServer(v, 2, nil, flags.KZG_EarRingTime)
 			end
 		end
-		})
+	elseif flags.KZG_SuppressTargets:lower() == 'others' then
+		for i, v in pairs(Players:GetPlayers()) do
+			if GeneralWhitelist[v] == nil and v ~= Player then
+		    	Suppress:FireServer(v, 2, nil, flags.KZG_EarRingTime)
+			end
+		end
+	else
+		for _, Target in pairs(SuppressTargets) do
+			if Target and GeneralWhitelist[Target] == nil then
+				Suppress:FireServer(Target, 2, nil, flags.KZG_EarRingTime)
+			end
+		end
+	end
+end})
 
-		--////////--
-
+AudioSection:AddSlider({
+	Name = "EarRing Time Speed",
+	Flag = "KZG_EarRingTime",
+	Value = 60,
+	Min = 0,
+	Max = 600,
+	Textbox = true,
+	Format = function(Value)
+	return "EarRing Time: " .. tostring(Value) .. "s"
+end})
 		
-    end
-}
+KillSection:AddTextbox({
+	Name = "Target(s)",
+	Placeholder = "User(s) here, split with '+'",
+	Value = "",
+	Flag = "KZG_KillTargets",
+	Callback = function(NewValue)
+	if NewValue == "" then CreateMessage({Title = 'KillTargets cleared', Text = 'KillTargets has been cleared', Duraction = 5}) KillTargets = {} return end
+	local Split = string.split(NewValue, '+')
+	KillTargets = {}
+	for _, PartialString in pairs(Split) do
+		if PartialString ~= "" then
+			local TargetPlayer = GetPlayer(PartialString)
+				if TargetPlayer then
+					KillTargets[TargetPlayer] = TargetPlayer
+					CreateMessage({Title = 'Added to KillTargets.', Text = TargetPlayer.Name..' has been added to the KillTargets.', Duraction = 5})
+				elseif (PartialString:lower() == ('all') or PartialString:lower() == ('others')) then
+					CreateMessage({Title = 'Set KillTargets.', Text = "KillTargets has been set to '"..PartialString.."'.", Duraction = 5})
+				else
+					CreateMessage({Title = 'Target Error.', Text = PartialString..' not found.', Duraction = 5})
+				end
+			end
+		end
+	end
+end})
 
-if Games[game.PlaceId] then
-    Games[game.PlaceId]()
-end
+KillSection:AddLabel({
+	Value = "Ex. Target1+Target2, or All,"
+})
+		
+KillSection:AddLabel({
+	Value = "or Others"
+})
 
--- ///////////////////////////////////// --
+KillSection:AddButton({
+	Name = "Kill Target(s)",
+	Flag = "KZG_Kill",
+	Callback = function()
+	local Weapon
+	for i, v in pairs(Players:GetDescendants()) do
+		if v:IsA('Tool') and v:FindFirstChild('ACS_Settings') then
+			Weapon = v
+		break end
+	end
+				
+	if Weapon then
+		local Module = require(Weapon.ACS_Settings)
+		if flags.KZG_KillTargets:lower() == 'all' then
+			for i, v in pairs(Players:GetPlayers()) do
+				local Char = v.Character or v.CharacterAdded:Wait()
+				if GeneralWhitelist[v] == nil and v ~= Player then
+					Damage:InvokeServer(Weapon, Char:FindFirstChildOfClass('Humanoid'), 0, 1, Module, ModTable, nil, nil, AcessId..'-'..Player.UserId)
+				end
+			end
+			Player.Character.Humanoid.Health = 0
+		elseif flags.KZG_KillTargets:lower() == 'others' then
+			for i, v in pairs(Players:GetPlayers()) do
+				local Char = v.Character or v.CharacterAdded:Wait()
+				if GeneralWhitelist[v] == nil and v ~= Player then
+					Damage:InvokeServer(Weapon, Char:FindFirstChildOfClass('Humanoid'), 0, 1, Module, ModTable, nil, nil, AcessId..'-'..Player.UserId)
+				end
+			end
+		else
+			for _, Target in pairs(KillTargets) do
+				local Char = Target.Character or Target.CharacterAdded:Wait()
+				if Target and GeneralWhitelist[Target] == nil then
+					Damage:InvokeServer(Weapon, Char:FindFirstChildOfClass('Humanoid'), 0, 1, Module, ModTable, nil, nil, AcessId..'-'..Player.UserId)
+				end
+			end
+		end
+	else
+		CreateMessage({Title = 'Error.', Text = 'No usable weapons found.', Duraction = 5})
+	end
+end})
+		
+LootSection:AddLabel({
+	Value = "This will only work for"
+})
+		
+LootSection:AddLabel({
+	Value = "about 20 studs or so."
+})
+
+LootSection:AddLabel({
+	Value = "WIP this dont work"
+})
+		
+LootSection:AddToggle({
+	Name = "Fire Nearby lootPrompts",
+	Flag = "KZG_LootPrompts",
+	Callback = function()
+	while flags.KZG_LootPrompts and task.wait(flags.KZG_FirePromptSpeed) do
+	    for i, v in pairs(workspace:GetChildren()) do
+	        local Prompt = v:FindFirstChildOfClass('ProximityPrompt')
+	        if Prompt and v:IsA('BasePart') and (Player.Character.HumanoidRootPart.Position - v.Position).Magnitude <= Prompt.MaxActivationDistance then
+	            fireproximityprompt(Prompt, (Player.Character.HumanoidRootPart.Position - v.Position).Magnitude)
+	        end
+	    end
+	end
+end})
+	
+LootSection:AddSlider({
+	Name = "FirePrompt Speed",
+	Flag = "KZG_FirePromptSpeed",
+	Value = 30,
+	Min = 5,
+	Max = 60,
+	Textbox = true,
+	Format = function(Value)
+	if Value == 0 then
+		return "FirePrompt Speed: Indefinite"
+	else
+		return "FirePrompt Speed: " .. tostring(Value) .. "s"
+	end
+end})
+
+--////////--
